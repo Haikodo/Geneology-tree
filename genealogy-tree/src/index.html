@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genealogy Tree</title>
+    <style>
+        #panning-canvas-container, #dragging-canvas-container {
+            width: 48%;
+            height: 500px;
+            overflow: auto;
+            border: 1px solid black;
+            position: relative;
+            display: inline-block;
+            vertical-align: top;
+        }
+        canvas {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Genealogy Tree</h1>
+    <h2>Panning Canvas</h2>
+    <div id="panning-canvas-container">
+        <canvas id="panning-canvas"></canvas>
+    </div>
+    <h2>Node Dragging Canvas</h2>
+    <div id="dragging-canvas-container">
+        <canvas id="dragging-canvas"></canvas>
+    </div>
+
+    <!-- Coordinates display -->
+    <div id="coordinates" class="coordinates">X: 0, Y: 0</div>
+
+    <script src="document.js"></script>
+</body>
+</html>

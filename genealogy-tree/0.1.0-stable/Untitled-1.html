@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genealogy Tree</title>
+    <link rel="stylesheet" href="Untitled-css.css">
+</head>
+<body>
+    <h1>Genealogy Tree</h1>
+    <button id="add-member">Add Family Member</button>
+    <div id="canvas-container">
+        <canvas id="tree-canvas"></canvas>
+    </div>
+
+    <!-- Modal for adding family member details -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add Family Member</h2>
+            <form id="member-form">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required><br>
+                <label for="birthDate">Birth Date:</label>
+                <input type="date" id="birthDate" name="birthDate" required><br>
+                <button type="submit">Add Member</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="untitlesjs.js"></script>
+</body>
+</html>
