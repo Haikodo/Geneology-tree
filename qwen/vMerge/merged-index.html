@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patekai Generations - Enhanced Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="merged-styles.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 py-6 text-center">
+            <h1 class="text-3xl font-bold text-indigo-700">Patekai Generations</h1>
+            <p class="text-gray-600">Enhanced Edition - Visual Tree + Data Management</p>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white shadow sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex space-x-8">
+                <button onclick="showTab('canvas-view')" class="tab-btn active" id="tab-canvas">
+                    🎨 Visual Tree
+                </button>
+                <button onclick="showTab('family-tree')" class="tab-btn" id="tab-family">
+                    🌳 Family Tree
+                </button>
+                <button onclick="showTab('register')" class="tab-btn" id="tab-register">
+                    ➕ Register
+                </button>
+                <button onclick="showTab('statistics')" class="tab-btn" id="tab-stats">
+                    📊 Stats
+                </button>
+                <button onclick="showTab('timeline')" class="tab-btn" id="tab-timeline">
+                    🕰️ Timeline
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        
+        <!-- CANVAS VIEW TAB -->
+        <div id="canvas-view" class="tab-content">
+            <div class="bg-white rounded-lg shadow p-4 mb-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Interactive Visual Tree</h2>
+                    <div class="space-x-2">
+                        <button onclick="addMemberToCanvas()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">
+                            ➕ Add Member
+                        </button>
+                        <button onclick="resetCanvas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
+                            🔄 Reset View
+                        </button>
+                        <button onclick="autoLayout()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm">
+                            ✨ Auto Layout
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-100 p-2 rounded mb-2 text-sm text-gray-600">
+                    💡 <strong>Controls:</strong> Click & drag nodes to move them | Right-click for options | Scroll to zoom
+                </div>
+                
+                <div id="canvas-container" class="canvas-container">
+                    <canvas id="tree-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAMILY TREE TAB (Traditional View) -->
+        <div id="family-tree" class="tab-content hidden">
+            <div class="space-y-6">
+                <h2 class="text-xl font-semibold">Traditional Family Tree</h2>
+                
+                <!-- Search -->
+                <div class="space-y-2">
+                    <input
+                        type="text"
+                        id="searchQuery"
+                        placeholder="🔍 Search by PID, Name, or TID"
+                        class="w-full p-2 border border-gray-300 rounded-lg"
+                        oninput="searchMembers()"
+                    />
+                    <div id="searchResults" class="bg-white p-3 border rounded shadow hidden"></div>
+                </div>
+
+                <!-- Main Tree -->
+                <div id="familyTree" class="bg-white p-6 rounded-lg shadow font-mono text-sm"></div>
+
+                <!-- Selected Member Details -->
+                <div id="selectedMember" class="bg-white p-6 rounded-lg shadow hidden">
+                    <h3 id="memberName" class="text-xl font-bold mb-4"></h3>
+                    <img id="memberPhoto" class="w-16 h-16 rounded-full mb-4" style="display:none;" />
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div><span class="font-medium">PID:</span> <span id="memberPID"></span></div>
+                        <div><span class="font-medium">TID:</span> <span id="memberTID"></span></div>
+                        <div><span class="font-medium">Birth:</span> <span id="memberBirth"></span></div>
+                        <div><span class="font-medium">Death:</span> <span id="memberDeath"></span></div>
+                        <div><span class="font-medium">Father:</span> <span id="memberFather">Unknown</span></div>
+                        <div><span class="font-medium">Mother:</span> <span id="memberMother">Unknown</span></div>
+                        <div><span class="font-medium">Spouse:</span> <span id="memberSpouse">None</span></div>
+                    </div>
+                    <div class="mt-4 space-x-4">
+                        <button onclick="startEdit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Edit</button>
+                        <button onclick="deleteMember()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">Delete</button>
+                        <button onclick="startAddChild()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">➕ Add Child</button>
+                        <button onclick="showOnCanvas()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm">🎨 Show on Canvas</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REGISTER TAB -->
+        <div id="register" class="tab-content hidden bg-white p-6 rounded-lg shadow max-w-3xl mx-auto">
+            <h2 id="registerTitle" class="text-2xl font-bold mb-6">✏️ Add/Edit Member</h2>
+            <form id="regForm" onsubmit="submitRegForm(event)" class="space-y-5">
+                <div>
+                    <label class="block font-medium">Patekai Member ID (Auto):</label>
+                    <input id="regPID" readonly class="w-full p-2 border rounded bg-gray-100 font-mono text-sm" />
+                </div>
+                <div>
+                    <label class="block font-medium">Tarsila Connection <span class="text-red-500">*</span>:</label>
+                    <input id="tid" name="tid" required class="w-full p-2 border rounded text-sm" placeholder="W01-SD01-GSD01-GGSD01" />
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-medium">First Name <span class="text-red-500">*</span>:</label>
+                        <input id="firstName" name="firstName" required class="w-full p-2 border rounded text-sm" placeholder="First Name" />
+                    </div>
+                    <div>
+                        <label class="block font-medium">Last Name:</label>
+                        <input id="lastName" name="lastName" class="w-full p-2 border rounded text-sm" placeholder="Last Name" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium">Sex <span class="text-red-500">*</span>:</label>
+                    <select id="sex" name="sex" required class="w-full p-2 border rounded text-sm">
+                        <option value="">Select Sex</option>
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-medium">Birth Date <span class="text-red-500">*</span>:</label>
+                        <input id="birth" name="birth" required placeholder="MM/DD/YYYY" class="w-full p-2 border rounded text-sm" />
+                    </div>
+                    <div>
+                        <label class="block font-medium">Death Date:</label>
+                        <input id="death" name="death" placeholder="MM/DD/YYYY" class="w-full p-2 border rounded text-sm" />
+                    </div>
+                </div>
+                
+                <!-- Simplified form for quick add -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label>Father PID:</label>
+                        <input id="fatherPid" name="fatherPid" placeholder="PID of Father" class="w-full p-2 border rounded text-sm" />
+                    </div>
+                    <div>
+                        <label>Mother PID:</label>
+                        <input id="motherPid" name="motherPid" placeholder="PID of Mother" class="w-full p-2 border rounded text-sm" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium">Spouse Status:</label>
+                    <select id="spouseStatus" class="w-full p-2 border rounded text-sm">
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                        <option value="Unknown">Unknown</option>
+                    </select>
+                </div>
+
+                <input id="spousePid" name="spousePid" class="hidden" />
+                
+                <div class="flex space-x-4">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded text-sm">Save Member</button>
+                    <button type="button" onclick="cancelAdd()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded text-sm">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- STATISTICS TAB -->
+        <div id="statistics" class="tab-content hidden bg-white p-6 rounded-lg shadow max-w-3xl mx-auto">
+            <h3 class="text-xl font-semibold mb-4">📊 Statistics</h3>
+            <ul class="space-y-2">
+                <li><strong>Total Members:</strong> <span id="totalMembers">0</span></li>
+                <li><strong>Wives of Patekai:</strong> <span id="totalWives">0</span></li>
+                <li><strong>Total Children:</strong> <span id="totalChildren">0</span></li>
+                <li><strong>Generations:</strong> <span id="totalGenerations">0</span></li>
+            </ul>
+        </div>
+
+        <!-- TIMELINE TAB -->
+        <div id="timeline" class="tab-content hidden space-y-2 max-w-3xl mx-auto">
+            <h3 class="text-xl font-semibold">🕰️ Timeline</h3>
+            <div id="timelineContent"></div>
+        </div>
+    </main>
+
+    <!-- Success Toast -->
+    <div id="toast" class="toast hidden">✅ Success!</div>
+
+    <!-- Context Menu for Canvas -->
+    <div id="contextMenu" class="context-menu hidden">
+        <button onclick="editNodeFromCanvas()">✏️ Edit Details</button>
+        <button onclick="addChildFromCanvas()">➕ Add Child</button>
+        <button onclick="deleteNodeFromCanvas()">🗑️ Delete</button>
+    </div>
+
+    <footer class="text-center py-6 text-gray-500 text-sm">
+        &copy; 2025 Patekai Generations - Enhanced Edition
+    </footer>
+
+    <!-- Load JavaScript files -->
+    <script src="merged-data.js"></script>
+    <script src="merged-canvas.js"></script>
+    <script src="merged-app.js"></script>
+</body>
+</html>

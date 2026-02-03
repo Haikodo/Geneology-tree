@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Patekai Generations - PTarsila 1.8</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .search-result { @apply p-2 border-b border-gray-200 cursor-pointer hover:bg-indigo-50; }
+    .member-node { @apply inline-block px-2 py-1 border border-gray-400 rounded bg-gray-100 cursor-pointer text-xs; }
+    .parent-node { @apply inline-block px-2 py-1 border-2 border-indigo-500 rounded bg-indigo-50 cursor-pointer font-bold; }
+    .wife-node { @apply ml-2 px-2 py-1 border border-gray-400 rounded bg-gray-100 cursor-pointer text-xs; }
+    .child-node { @apply inline-block px-2 py-1 border border-indigo-400 rounded bg-indigo-50 cursor-pointer text-xs; }
+    .expand-btn { @apply w-6 h-6 bg-indigo-600 text-white text-xs rounded flex items-center justify-center mr-2; }
+    .toast { @apply fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded shadow-lg z-50 animate-bounce; }
+    .spouse-unknown { @apply text-gray-500 italic; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 py-6 text-center">
+      <h1 class="text-3xl font-bold text-indigo-700">Patekai Generations</h1>
+      <p class="text-gray-600">PTarsila 1.8 — Spouse Intelligence</p>
+    </div>
+  </header>
+
+  <nav class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex space-x-8">
+        <button onclick="showTab('family-tree')" class="py-3 px-2 border-b-2 border-indigo-500 text-indigo-700 font-medium">🌳 Family Tree</button>
+        <button onclick="showTab('register')" class="py-3 px-2 border-b-2 text-gray-500 font-medium">➕ Register</button>
+        <button onclick="showTab('statistics')" class="py-3 px-2 border-b-2 text-gray-500 font-medium">📊 Stats</button>
+        <button onclick="showTab('timeline')" class="py-3 px-2 border-b-2 text-gray-500 font-medium">🕰️ Timeline</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-4">
+    <!-- Family Tree Tab -->
+    <div id="family-tree" class="space-y-6">
+      <h2 class="text-xl font-semibold">Family Tree</h2>
+
+      <!-- Search -->
+      <div class="space-y-2">
+        <input
+          type="text"
+          id="searchQuery"
+          placeholder="🔍 Search by PID, Name, or TID"
+          class="w-full p-2 border border-gray-300 rounded-lg"
+          oninput="searchMembers()"
+        />
+        <div id="searchResults" class="bg-white p-3 border rounded shadow hidden"></div>
+      </div>
+
+      <!-- Success Toast -->
+      <div id="toast" class="toast hidden">✅ Member added successfully!</div>
+
+      <!-- Main Tree -->
+      <div id="familyTree" class="bg-white p-6 rounded-lg shadow font-mono text-sm"></div>
+
+      <!-- Selected Member Details -->
+      <div id="selectedMember" class="bg-white p-6 rounded-lg shadow hidden">
+        <h3 id="memberName" class="text-xl font-bold mb-4"></h3>
+        <img id="memberPhoto" class="w-16 h-16 rounded-full mb-4" style="display:none;" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div><span class="font-medium">PID:</span> <span id="memberPID"></span></div>
+          <div><span class="font-medium">TID:</span> <span id="memberTID"></span></div>
+          <div><span class="font-medium">Birth:</span> <span id="memberBirth"></span></div>
+          <div><span class="font-medium">Death:</span> <span id="memberDeath"></span></div>
+          <div><span class="font-medium">Father:</span> <span id="memberFather">Unknown</span></div>
+          <div><span class="font-medium">Mother:</span> <span id="memberMother">Unknown</span></div>
+          <div><span class="font-medium">Spouse:</span> <span id="memberSpouse">None</span></div>
+        </div>
+        <div class="mt-4 space-x-4">
+          <button onclick="startEdit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Edit</button>
+          <button onclick="deleteMember()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">Delete</button>
+          <button onclick="startAddChild()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">➕ Add Child</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Register Tab (used for both Add and Edit) -->
+    <div id="register" class="hidden bg-white p-6 rounded-lg shadow max-w-3xl mx-auto">
+      <h2 id="registerTitle" class="text-2xl font-bold mb-6">✏️ Edit Member</h2>
+      <form id="regForm" onsubmit="submitRegForm(event)" class="space-y-5">
+        <div>
+          <label class="block font-medium">Patekai Member ID (Auto):</label>
+          <input id="regPID" readonly class="w-full p-2 border rounded bg-gray-100 font-mono text-sm" />
+        </div>
+        <div>
+          <label class="block font-medium">Tarsila Connection <span class="text-red-500">*</span>:</label>
+          <input id="tid" name="tid" required class="w-full p-2 border rounded text-sm" placeholder="W01-SD01-GSD01-GGSD01" />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-medium">First Name <span class="text-red-500">*</span>:</label>
+            <input id="firstName" name="firstName" required class="w-full p-2 border rounded text-sm" placeholder="First Name" />
+          </div>
+          <div>
+            <label class="block font-medium">Last Name (optional):</label>
+            <input id="lastName" name="lastName" class="w-full p-2 border rounded text-sm" placeholder="Last Name" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium">Sex <span class="text-red-500">*</span>:</label>
+          <select id="sex" name="sex" required class="w-full p-2 border rounded text-sm">
+            <option value="">Select Sex</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-medium">Birth Date <span class="text-red-500">*</span>:</label>
+            <input id="birth" name="birth" required placeholder="MM/DD/YYYY" class="w-full p-2 border rounded text-sm" />
+          </div>
+          <div>
+            <label class="block font-medium">Death Date:</label>
+            <input id="death" name="death" placeholder="MM/DD/YYYY" class="w-full p-2 border rounded text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium">Country:</label>
+          <select id="country" name="country" onchange="updateCountry(this)" class="w-full p-2 border rounded text-sm">
+            <option value="Philippines">Philippines</option>
+            <option value="USA">United States</option>
+            <option value="Canada">Canada</option>
+          </select>
+        </div>
+        <div id="regionGroup" class="hidden">
+          <label class="block font-medium">Region:</label>
+          <select id="region" name="region" onchange="updateCities()" class="w-full p-2 border rounded text-sm">
+            <option value="">Select Region</option>
+            <option value="BARMM">BARMM</option>
+            <option value="NCR">NCR</option>
+          </select>
+        </div>
+        <div id="cityGroup" class="hidden">
+          <label class="block font-medium">City:</label>
+          <select id="city" name="city" class="w-full p-2 border rounded text-sm">
+            <option value="">Select City</option>
+          </select>
+        </div>
+        <div id="cityInput" class="hidden">
+          <label class="block font-medium">City (max 25 chars):</label>
+          <input id="cityInputField" name="city" maxlength="25" class="w-full p-2 border rounded text-sm" />
+        </div>
+        <div>
+          <label class="block font-medium">Address (max 100 chars):</label>
+          <input id="address" name="address" maxlength="100" class="w-full p-2 border rounded text-sm" placeholder="Street, Barangay, etc." />
+        </div>
+        <div>
+          <label class="block font-medium">Phone Number:</label>
+          <div class="flex gap-2 items-center">
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Area Code</label>
+              <select id="countryCode" name="countryCode" class="p-2 border rounded text-sm w-24">
+                <option value="+63">+63</option>
+                <option value="+1">+1</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-gray-600">Phone Number</label>
+              <input id="phone" name="phone" placeholder="(000) 000-0000" class="w-full p-2 border rounded text-sm" />
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium">Email:</label>
+          <input id="email" name="email" type="email" placeholder="name@example.com" class="w-full p-2 border rounded text-sm" />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label>Father:</label>
+            <input id="fatherPid" name="fatherPid" placeholder="PID of Father" class="w-full p-2 border rounded text-sm" />
+          </div>
+          <div>
+            <label>Mother:</label>
+            <input id="motherPid" name="motherPid" placeholder="PID of Mother" class="w-full p-2 border rounded text-sm" />
+          </div>
+        </div>
+
+        <!-- SPOUSE LOGIC -->
+        <div>
+          <label class="block font-medium">Spouse Status:</label>
+          <select id="spouseStatus" onchange="updateSpouseFields()" class="w-full p-2 border rounded text-sm">
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+        </div>
+
+        <div id="spouseSearchGroup" class="hidden">
+          <label>Search Spouse by PID or Name:</label>
+          <input id="spouseSearch" oninput="searchSpouse()" placeholder="Enter PID or Name" class="w-full p-2 border rounded text-sm" />
+          <div id="spouseResults" class="bg-white border rounded mt-1 max-h-32 overflow-y-auto hidden"></div>
+        </div>
+
+        <div id="newSpouseGroup" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label>New Spouse First Name:</label>
+            <input id="newSpouseFirstName" class="w-full p-2 border rounded text-sm" placeholder="First Name" />
+          </div>
+          <div>
+            <label>New Spouse Last Name (optional):</label>
+            <input id="newSpouseLastName" class="w-full p-2 border rounded text-sm" placeholder="Last Name" />
+          </div>
+        </div>
+
+        <input id="spousePid" name="spousePid" class="hidden" />
+
+        <div>
+          <label class="block font-medium">Marriage Date:</label>
+          <input id="marriageDate" name="marriageDate" placeholder="MM/DD/YYYY" class="w-full p-2 border rounded text-sm" />
+        </div>
+        <div>
+          <label class="block font-medium">Divorce Date:</label>
+          <input id="divorceDate" name="divorceDate" placeholder="MM/DD/YYYY" class="w-full p-2 border rounded text-sm" />
+        </div>
+
+        <div>
+          <label class="block font-medium">Upload Photo:</label>
+          <input type="file" accept="image/*" onchange="handlePhotoUpload(event)" class="w-full p-2 border rounded text-sm" />
+          <img id="photoPreview" class="mt-2 w-16 h-16 rounded object-cover" style="display:none;" />
+        </div>
+        <div class="flex space-x-4">
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded text-sm">Save Member</button>
+          <button type="button" onclick="cancelAdd()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded text-sm">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Statistics Tab -->
+    <div id="statistics" class="hidden bg-white p-6 rounded-lg shadow max-w-3xl mx-auto">
+      <h3 class="text-xl font-semibold mb-4">📊 Statistics</h3>
+      <ul class="space-y-2">
+        <li><strong>Total Members:</strong> <span id="totalMembers">0</span></li>
+        <li><strong>Wives:</strong> <span id="totalWives">0</span></li>
+        <li><strong>Children:</strong> <span id="totalChildren">0</span></li>
+      </ul>
+    </div>
+
+    <!-- Timeline Tab -->
+    <div id="timeline" class="hidden space-y-2 max-w-3xl mx-auto">
+      <h3 class="text-xl font-semibold">🕰️ Timeline</h3>
+      <div id="timelineContent"></div>
+    </div>
+  </main>
+
+  <footer class="text-center py-6 text-gray-500 text-sm">&copy; 2025 PTarsila 1.8 — Spouse Intelligence</footer>
+
+  <script>
+    // ✅ FULL FAMILY TREE RESTORED
+    let members = [
+      { id: 1, pid: 'PID001', tid: 'W01', name: 'Patekai', firstName: 'Patekai', lastName: '', sex: 'M', birth: '01/01/1800', death: '12/15/1875', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: 'Royal Compound', phone: '', email: '', parentPids: [], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'Yes' },
+      { id: 2, pid: 'PID002', tid: 'W01', name: 'Endao', firstName: 'Endao', lastName: '', sex: 'F', birth: '03/12/1805', death: '05/20/1860', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: 'Royal Compound', phone: '', email: '', parentPids: [], spousePid: 'PID001', marriageDate: '01/10/1820', divorceDate: '', photo: '', spouseStatus: 'Yes' },
+      { id: 3, pid: 'PID007', tid: 'W01-SD01', name: 'Unggas', firstName: 'Unggas', lastName: '', sex: 'M', birth: '02/14/1825', death: '07/10/1890', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID001', 'PID002'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 4, pid: 'PID008', tid: 'W01-SD02', name: 'Gino', firstName: 'Gino', lastName: '', sex: 'M', birth: '04/18/1827', death: '09/15/1895', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID001', 'PID002'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 5, pid: 'PID009', tid: 'W01-SD03', name: 'Anas', firstName: 'Anas', lastName: '', sex: 'M', birth: '06/22/1830', death: '11/05/1900', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID001', 'PID002'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 6, pid: 'PID010', tid: 'W01-SD04', name: 'Jama', firstName: 'Jama', lastName: '', sex: 'F', birth: '08/30/1833', death: '02/14/1885', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID001', 'PID002'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 7, pid: 'PID011', tid: 'W01-SD05', name: 'Dangalan', firstName: 'Dangalan', lastName: '', sex: 'M', birth: '10/05/1836', death: '04/22/1910', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID001', 'PID002'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 8, pid: 'PID012', tid: 'W01-SD06', name: 'Kanda', firstName: 'Kanda', lastName: '', sex: 'F', birth: '12/12/1839', death: '06/30/1898', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID001', 'PID002'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 9, pid: 'PID013', tid: 'W01-SD07', name: 'Kusa', firstName: 'Kusa', lastName: '', sex: 'M', birth: '01/25/1842', death: '08/17/1915', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID001', 'PID002'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 10, pid: 'PID003', tid: 'W02', name: 'Empek', firstName: 'Empek', lastName: '', sex: 'F', birth: '05/05/1810', death: '03/12/1870', country: 'Philippines', region: 'BARMM', city: 'Sultan Kudarat', address: 'Royal Compound', phone: '', email: '', parentPids: [], spousePid: 'PID001', marriageDate: '06/15/1840', divorceDate: '', photo: '', spouseStatus: 'Yes' },
+      { id: 11, pid: 'PID014', tid: 'W02-SD01', name: 'Unos', firstName: 'Unos', lastName: '', sex: 'M', birth: '07/20/1842', death: '10/10/1905', country: 'Philippines', region: 'BARMM', city: 'Sultan Kudarat', address: '', parentPids: ['PID001', 'PID003'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 12, pid: 'PID015', tid: 'W02-SD02', name: 'Daynko', firstName: 'Daynko', lastName: '', sex: 'F', birth: '09/25/1845', death: '12/05/1900', country: 'Philippines', region: 'BARMM', city: 'Sultan Kudarat', address: '', parentPids: ['PID001', 'PID003'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 13, pid: 'PID016', tid: 'W02-SD03', name: 'Dagedeban', firstName: 'Dagedeban', lastName: '', sex: 'M', birth: '11/30/1848', death: '01/15/1912', country: 'Philippines', region: 'BARMM', city: 'Sultan Kudarat', address: '', parentPids: ['PID001', 'PID003'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 14, pid: 'PID017', tid: 'W02-SD04', name: 'Kiram', firstName: 'Kiram', lastName: '', sex: 'M', birth: '02/14/1852', death: '05/20/1918', country: 'Philippines', region: 'BARMM', city: 'Sultan Kudarat', address: '', parentPids: ['PID001', 'PID003'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 15, pid: 'PID004', tid: 'W03', name: 'Amina', firstName: 'Amina', lastName: '', sex: 'F', birth: '08/10/1815', death: '07/25/1880', country: 'Philippines', region: 'BARMM', city: 'Marawi', address: 'Royal Compound', phone: '', email: '', parentPids: [], spousePid: 'PID001', marriageDate: '04/20/1855', divorceDate: '', photo: '', spouseStatus: 'Yes' },
+      { id: 16, pid: 'PID018', tid: 'W03-SD01', name: 'Pamogon', firstName: 'Pamogon', lastName: '', sex: 'M', birth: '06/18/1857', death: '09/30/1925', country: 'Philippines', region: 'BARMM', city: 'Marawi', address: '', parentPids: ['PID001', 'PID004'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 17, pid: 'PID019', tid: 'W03-SD02', name: 'Paga', firstName: 'Paga', lastName: '', sex: 'F', birth: '08/22/1860', death: '11/12/1920', country: 'Philippines', region: 'BARMM', city: 'Marawi', address: '', parentPids: ['PID001', 'PID004'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 18, pid: 'PID020', tid: 'W03-SD03', name: 'Bulos', firstName: 'Bulos', lastName: '', sex: 'M', birth: '10/05/1863', death: '02/18/1930', country: 'Philippines', region: 'BARMM', city: 'Marawi', address: '', parentPids: ['PID001', 'PID004'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 19, pid: 'PID021', tid: 'W03-SD04', name: 'Tingalong', firstName: 'Tingalong', lastName: '', sex: 'F', birth: '12/10/1866', death: '04/25/1928', country: 'Philippines', region: 'BARMM', city: 'Marawi', address: '', parentPids: ['PID001', 'PID004'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 20, pid: 'PID022', tid: 'W03-SD05', name: 'Sanduyogan', firstName: 'Sanduyogan', lastName: '', sex: 'M', birth: '01/15/1870', death: '03/20/1940', country: 'Philippines', region: 'BARMM', city: 'Marawi', address: '', parentPids: ['PID001', 'PID004'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 21, pid: 'PID005', tid: 'W04', name: '[Name Unknown]', firstName: '[Name Unknown]', lastName: '', sex: 'F', birth: '', death: '', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: 'Royal Compound', phone: '', email: '', parentPids: [], spousePid: 'PID001', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 22, pid: 'PID006', tid: 'W05', name: 'Elmas', firstName: 'Elmas', lastName: '', sex: 'F', birth: '07/10/1820', death: '10/15/1885', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: 'Royal Compound', phone: '', email: '', parentPids: [], spousePid: 'PID001', marriageDate: '05/10/1860', divorceDate: '', photo: '', spouseStatus: 'Yes' },
+      { id: 23, pid: 'PID023', tid: 'W05-SD01', name: 'Bagal', firstName: 'Bagal', lastName: '', sex: 'M', birth: '08/20/1862', death: '12/10/1935', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID001', 'PID006'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 24, pid: 'PID024', tid: 'W05-SD02', name: 'Tumog', firstName: 'Tumog', lastName: '', sex: 'F', birth: '03/12/1865', death: '07/18/1940', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID001', 'PID006'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      // Unggas's Children
+      { id: 25, pid: 'PID025', tid: 'W01-SD01-GSD01', name: 'Sindatok', firstName: 'Sindatok', lastName: '', sex: 'M', birth: '01/01/1845', death: '', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID007'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'Unknown' },
+      { id: 26, pid: 'PID026', tid: 'W01-SD01-GSD02', name: 'Angga', firstName: 'Angga', lastName: '', sex: 'M', birth: '03/15/1847', death: '', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID007'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 27, pid: 'PID027', tid: 'W01-SD01-GSD03', name: 'Gayong', firstName: 'Gayong', lastName: '', sex: 'F', birth: '06/20/1849', death: '', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID007'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' },
+      { id: 28, pid: 'PID028', tid: 'W01-SD01-GSD04', name: 'Pananggilan', firstName: 'Pananggilan', lastName: '', sex: 'M', birth: '09/10/1851', death: '', country: 'Philippines', region: 'BARMM', city: 'Cotabato City', address: '', parentPids: ['PID007'], spousePid: '', marriageDate: '', divorceDate: '', photo: '', spouseStatus: 'No' }
+    ];
+
+    let selectedMember = null;
+    let editingMember = null;
+    let addMode = null;
+    let regPhoto = null;
+
+    const philippineCities = {
+      'BARMM': ['Cotabato City', 'Sultan Kudarat', 'Marawi'],
+      'NCR': ['Manila', 'Quezon City', 'Makati']
+    };
+
+    function getMemberByPid(pid) {
+      return members.find(m => m.pid === pid);
+    }
+
+    function getMemberByName(name) {
+      return members.find(m => m.name.toLowerCase().includes(name.toLowerCase()));
+    }
+
+    function renderTree() {
+      const treeEl = document.getElementById('familyTree');
+      treeEl.innerHTML = '';
+
+      const patekai = getMemberByPid('PID001');
+      if (patekai) {
+        const patekaiEl = document.createElement('div');
+        patekaiEl.className = 'parent-node';
+        patekaiEl.textContent = `♂ ${patekai.name}`;
+        patekaiEl.onclick = () => selectMember(patekai);
+        treeEl.appendChild(patekaiEl);
+      }
+
+      const wives = members.filter(m => m.spousePid === 'PID001').sort((a, b) => a.pid.localeCompare(b.pid));
+      wives.forEach(wife => {
+        const wifeKey = `wife-${wife.pid}`;
+        const isExpanded = expanded[wifeKey] || false;
+        const children = members.filter(m => m.parentPids.includes(wife.pid));
+
+        const wifeDiv = document.createElement('div');
+        wifeDiv.className = 'ml-8 mt-3';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center';
+        header.innerHTML = `
+          <button onclick="toggleExpand('${wifeKey}')" class="expand-btn">${isExpanded ? '−' : '+'}</button>
+          <span class="text-indigo-600 font-bold">──▶</span>
+        `;
+        const wifeSpan = document.createElement('div');
+        wifeSpan.className = 'wife-node';
+        let displayName = wife.name;
+        if (wife.spouseStatus === 'Unknown') {
+          displayName = `${wife.name} - Unknown`;
+          wifeSpan.className += ' spouse-unknown';
+        }
+        wifeSpan.textContent = `♀ ${displayName}`;
+        wifeSpan.onclick = () => selectMember(wife);
+        header.appendChild(wifeSpan);
+        wifeDiv.appendChild(header);
+
+        if (isExpanded && children.length > 0) {
+          const childrenDiv = document.createElement('div');
+          childrenDiv.className = 'border-l-2 border-gray-300 ml-6 pl-6 mt-2 space-y-1';
+          children.forEach(child => {
+            const childEl = document.createElement('div');
+            childEl.className = 'flex items-center mt-1';
+            const childSpan = document.createElement('div');
+            childSpan.className = 'child-node';
+            let childDisplayName = `${child.sex === 'M' ? '♂ ' : '♀ '} ${child.name}`;
+            if (child.spouseStatus === 'Unknown') {
+              childDisplayName += ' - Unknown';
+              childSpan.className += ' spouse-unknown';
+            }
+            childSpan.textContent = childDisplayName;
+            childSpan.onclick = () => selectMember(child);
+            childEl.appendChild(childSpan);
+            childrenDiv.appendChild(childEl);
+            renderDescendants(child, childrenDiv, 1);
+          });
+          wifeDiv.appendChild(childrenDiv);
+        }
+
+        treeEl.appendChild(wifeDiv);
+      });
+    }
+
+    let expanded = {};
+
+    function toggleExpand(key) {
+      expanded[key] = !expanded[key];
+      renderTree();
+    }
+
+    function renderDescendants(parent, container, depth) {
+      if (depth >= 3) return;
+      const children = members.filter(m => m.parentPids.includes(parent.pid));
+      if (children.length === 0) return;
+
+      const parentKey = `child-${parent.pid}`;
+      const isExpanded = expanded[parentKey] || false;
+
+      const toggleDiv = document.createElement('div');
+      toggleDiv.className = 'ml-6 mt-1';
+      toggleDiv.innerHTML = `<button onclick="toggleExpand('${parentKey}')" class="expand-btn">${isExpanded ? '−' : '+'}</button>`;
+      container.appendChild(toggleDiv);
+
+      if (isExpanded) {
+        const childrenDiv = document.createElement('div');
+        childrenDiv.className = 'ml-5 mt-1 space-y-1';
+        children.forEach(child => {
+          const childEl = document.createElement('div');
+          childEl.className = 'flex items-center mt-1';
+          const childSpan = document.createElement('div');
+          childSpan.className = 'member-node';
+          let childDisplayName = `${child.sex === 'M' ? '♂ ' : '♀ '} ${child.name}`;
+          if (child.spouseStatus === 'Unknown') {
+            childDisplayName += ' - Unknown';
+            childSpan.className += ' spouse-unknown';
+          }
+          childSpan.textContent = childDisplayName;
+          childSpan.onclick = () => selectMember(child);
+          childEl.appendChild(childSpan);
+          childrenDiv.appendChild(childEl);
+          renderDescendants(child, childrenDiv, depth + 1);
+        });
+        toggleDiv.appendChild(childrenDiv);
+      }
+    }
+
+    function selectMember(member) {
+      if (!member) return;
+      selectedMember = member;
+      document.getElementById('selectedMember').classList.remove('hidden');
+
+      document.getElementById('memberName').textContent = member.name;
+      document.getElementById('memberPID').textContent = member.pid;
+      document.getElementById('memberTID').textContent = member.tid;
+      document.getElementById('memberBirth').textContent = member.birth;
+      document.getElementById('memberDeath').textContent = member.death || 'Alive';
+
+      const father = member.parentPids[0] ? getMemberByPid(member.parentPids[0]) : null;
+      document.getElementById('memberFather').textContent = father ? father.name : 'Unknown';
+
+      const mother = member.parentPids[1] ? getMemberByPid(member.parentPids[1]) : null;
+      document.getElementById('memberMother').textContent = mother ? mother.name : 'Unknown';
+
+      let spouseText = 'None';
+      if (member.spouseStatus === 'Yes' && member.spousePid) {
+        const spouse = getMemberByPid(member.spousePid);
+        spouseText = spouse ? spouse.name : 'Linked';
+      } else if (member.spouseStatus === 'Unknown') {
+        spouseText = 'Unknown';
+      }
+      document.getElementById('memberSpouse').textContent = spouseText;
+
+      const photoImg = document.getElementById('memberPhoto');
+      if (member.photo) {
+        photoImg.src = member.photo;
+        photoImg.style.display = 'block';
+      } else {
+        photoImg.style.display = 'none';
+      }
+    }
+
+    function showTab(tab) {
+      document.getElementById('family-tree').style.display = 'none';
+      document.getElementById('register').style.display = 'none';
+      document.getElementById('statistics').style.display = 'none';
+      document.getElementById('timeline').style.display = 'none';
+      document.getElementById(tab).style.display = 'block';
+      if (tab === 'family-tree') renderTree();
+      if (tab === 'statistics') updateStats();
+      if (tab === 'timeline') renderTimeline();
+    }
+
+    function searchMembers() {
+      const query = document.getElementById('searchQuery').value.toLowerCase();
+      const resultsEl = document.getElementById('searchResults');
+      resultsEl.classList.remove('hidden');
+      resultsEl.innerHTML = '';
+
+      if (!query) {
+        resultsEl.classList.add('hidden');
+        return;
+      }
+
+      const results = members.filter(m => 
+        m.pid.toLowerCase().includes(query) ||
+        m.name.toLowerCase().includes(query) ||
+        m.tid.toLowerCase().includes(query)
+      );
+
+      if (results.length === 0) {
+        resultsEl.innerHTML = '<div class="text-red-500">🚫 Member not found</div>';
+        return;
+      }
+
+      results.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'search-result';
+        div.innerHTML = `<strong class="text-indigo-700">${m.name}</strong> | ${m.pid} | ${m.tid}`;
+        div.onclick = () => selectMember(m);
+        resultsEl.appendChild(div);
+      });
+    }
+
+    function startAddChild() {
+      if (!selectedMember) {
+        alert("Please select a member first.");
+        return;
+      }
+
+      addMode = 'child';
+      showTab('register');
+      document.getElementById('registerTitle').textContent = `➕ Add Child to ${selectedMember.name}`;
+
+      const form = document.getElementById('regForm');
+      const nextPid = `PID${String(Math.max(...members.map(m => parseInt(m.pid.replace('PID', ''), 10))) + 1).padStart(3, '0')}`;
+      const children = members.filter(m => m.parentPids.includes(selectedMember.pid));
+      const nextNum = String(children.length + 1).padStart(2, '0');
+      const nextTid = `${selectedMember.tid}-GGSD${nextNum}`;
+
+      document.getElementById('regPID').value = nextPid;
+      form.tid.value = nextTid;
+      form.fatherPid.value = selectedMember.pid;
+      form.motherPid.value = '';
+      form.firstName.value = '';
+      form.lastName.value = '';
+      form.sex.value = '';
+      form.birth.value = '';
+      form.death.value = '';
+      form.country.value = 'Philippines';
+      form.region.value = '';
+      form.city.value = '';
+      form.address.value = '';
+      form.phone.value = '';
+      form.email.value = '';
+      form.spousePid.value = '';
+      form.marriageDate.value = '';
+      form.divorceDate.value = '';
+      document.getElementById('photoPreview').style.display = 'none';
+      regPhoto = null;
+      form.spouseStatus.value = 'No';
+      updateSpouseFields();
+    }
+
+    function startEdit() {
+      if (!selectedMember) return;
+
+      editingMember = selectedMember;
+      showTab('register');
+      document.getElementById('registerTitle').textContent = `✏️ Edit Member: ${selectedMember.name}`;
+
+      const form = document.getElementById('regForm');
+      document.getElementById('regPID').value = selectedMember.pid;
+      form.tid.value = selectedMember.tid;
+      form.firstName.value = selectedMember.firstName;
+      form.lastName.value = selectedMember.lastName || '';
+      form.sex.value = selectedMember.sex;
+      form.birth.value = selectedMember.birth;
+      form.death.value = selectedMember.death || '';
+      form.country.value = selectedMember.country || 'Philippines';
+      form.region.value = selectedMember.region || '';
+      form.city.value = selectedMember.city || '';
+      form.address.value = selectedMember.address || '';
+      form.phone.value = selectedMember.phone || '';
+      form.email.value = selectedMember.email || '';
+      form.fatherPid.value = selectedMember.parentPids[0] || '';
+      form.motherPid.value = selectedMember.parentPids[1] || '';
+      form.marriageDate.value = selectedMember.marriageDate || '';
+      form.divorceDate.value = selectedMember.divorceDate || '';
+
+      const status = selectedMember.spouseStatus || 'No';
+      form.spouseStatus.value = status;
+      form.spousePid.value = selectedMember.spousePid || '';
+
+      if (selectedMember.photo) {
+        document.getElementById('photoPreview').src = selectedMember.photo;
+        document.getElementById('photoPreview').style.display = 'block';
+        regPhoto = selectedMember.photo;
+      } else {
+        document.getElementById('photoPreview').style.display = 'none';
+        regPhoto = null;
+      }
+
+      updateSpouseFields();
+    }
+
+    function updateSpouseFields() {
+      const status = document.getElementById('spouseStatus').value;
+      const searchGroup = document.getElementById('spouseSearchGroup');
+      const newSpouseGroup = document.getElementById('newSpouseGroup');
+
+      if (status === 'Yes') {
+        searchGroup.classList.remove('hidden');
+        newSpouseGroup.classList.add('hidden');
+      } else if (status === 'Unknown') {
+        searchGroup.classList.add('hidden');
+        newSpouseGroup.classList.add('hidden');
+      } else {
+        searchGroup.classList.add('hidden');
+        newSpouseGroup.classList.add('hidden');
+      }
+    }
+
+    function searchSpouse() {
+      const query = document.getElementById('spouseSearch').value.toLowerCase();
+      const resultsEl = document.getElementById('spouseResults');
+      resultsEl.classList.remove('hidden');
+      resultsEl.innerHTML = '';
+
+      if (!query) {
+        resultsEl.classList.add('hidden');
+        return;
+      }
+
+      const results = members.filter(m => 
+        m.pid.toLowerCase().includes(query) ||
+        m.name.toLowerCase().includes(query)
+      );
+
+      if (results.length === 0) {
+        const createNew = document.createElement('div');
+        createNew.className = 'p-2 border-b cursor-pointer hover:bg-green-50';
+        createNew.innerHTML = `➕ <strong>Add new spouse: ${query}</strong>`;
+        createNew.onclick = () => {
+          document.getElementById('newSpouseFirstName').value = query;
+          document.getElementById('spouseSearchGroup').classList.add('hidden');
+          document.getElementById('newSpouseGroup').classList.remove('hidden');
+        };
+        resultsEl.appendChild(createNew);
+        return;
+      }
+
+      results.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'p-2 border-b cursor-pointer hover:bg-indigo-50';
+        div.innerHTML = `<strong>${m.name}</strong> (${m.pid})`;
+        div.onclick = () => {
+          document.getElementById('spousePid').value = m.pid;
+          document.getElementById('spouseSearch').value = m.name;
+          resultsEl.classList.add('hidden');
+        };
+        resultsEl.appendChild(div);
+      });
+    }
+
+    function cancelAdd() {
+      addMode = null;
+      editingMember = null;
+      showTab('family-tree');
+    }
+
+    function handlePhotoUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          regPhoto = e.target.result;
+          document.getElementById('photoPreview').src = e.target.result;
+          document.getElementById('photoPreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function submitRegForm(e) {
+      e.preventDefault();
+      if (!selectedMember && !editingMember) {
+        alert("No member selected.");
+        return;
+      }
+
+      const form = document.getElementById('regForm');
+      const firstName = form.firstName.value.trim();
+      if (!firstName) return alert("First name is required.");
+
+      const isEditing = !!editingMember;
+      const pid = isEditing ? editingMember.pid : document.getElementById('regPID').value;
+
+      // Handle new spouse creation
+      let spousePid = form.spousePid.value;
+      const status = form.spouseStatus.value;
+      if (status === 'Yes' && !spousePid) {
+        const newFirst = document.getElementById('newSpouseFirstName').value.trim();
+        if (newFirst) {
+          const newId = Math.max(0, ...members.map(m => m.id)) + 1;
+          const newSpousePid = `PID${String(newId).padStart(3, '0')}`;
+          const newSpouse = {
+            id: newId,
+            pid: newSpousePid,
+            tid: 'TEMP-TID',
+            firstName: newFirst,
+            lastName: document.getElementById('newSpouseLastName').value || '',
+            name: `${newFirst} ${document.getElementById('newSpouseLastName').value || ''}`.trim(),
+            sex: form.sex.value === 'M' ? 'F' : 'M',
+            birth: '',
+            death: '',
+            country: 'Philippines',
+            parentPids: [],
+            spousePid: pid,
+            spouseStatus: 'Yes',
+            photo: null
+          };
+          members.push(newSpouse);
+          spousePid = newSpousePid;
+        }
+      }
+
+      const member = {
+        id: isEditing ? editingMember.id : Math.max(0, ...members.map(m => m.id)) + 1,
+        pid,
+        tid: form.tid.value.trim(),
+        firstName,
+        lastName: form.lastName.value,
+        name: `${firstName}${form.lastName.value ? ' ' + form.lastName.value : ''}`.trim() || 'Unknown',
+        sex: form.sex.value,
+        birth: form.birth.value,
+        death: form.death.value,
+        country: form.country.value,
+        region: form.region.value,
+        city: form.city.value || document.getElementById('cityInputField').value,
+        address: form.address.value,
+        phone: (form.countryCode.value || '') + (form.phone.value || ''),
+        email: form.email.value,
+        parentPids: [form.fatherPid.value, form.motherPid.value].filter(Boolean),
+        spousePid: spousePid,
+        spouseStatus: status,
+        marriageDate: form.marriageDate.value,
+        divorceDate: form.divorceDate.value,
+        photo: regPhoto
+      };
+
+      if (isEditing) {
+        const index = members.findIndex(m => m.pid === pid);
+        members[index] = member;
+        showToast(`✅ ${member.name} updated successfully!`);
+      } else {
+        members.push(member);
+        showToast(`✅ ${member.name} added successfully!`);
+      }
+
+      cancelAdd();
+      renderTree();
+    }
+
+    function deleteMember() {
+      if (!selectedMember) return;
+      if (confirm(`Delete ${selectedMember.name}? This cannot be undone.`)) {
+        members = members.filter(m => m.pid !== selectedMember.pid);
+        document.getElementById('selectedMember').classList.add('hidden');
+        selectedMember = null;
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    function updateCountry(select) {
+      const regionGroup = document.getElementById('regionGroup');
+      const cityGroup = document.getElementById('cityGroup');
+      const cityInput = document.getElementById('cityInput');
+      if (select.value === 'Philippines') {
+        regionGroup.classList.remove('hidden');
+        cityGroup.classList.remove('hidden');
+        cityInput.classList.add('hidden');
+      } else {
+        regionGroup.classList.add('hidden');
+        cityGroup.classList.add('hidden');
+        cityInput.classList.remove('hidden');
+      }
+    }
+
+    function updateCities() {
+      const region = document.getElementById('region').value;
+      const citySelect = document.getElementById('city');
+      citySelect.innerHTML = '<option value="">Select City</option>';
+      if (region && philippineCities[region]) {
+        philippineCities[region].forEach(city => {
+          const opt = document.createElement('option');
+          opt.value = city;
+          opt.textContent = city;
+          citySelect.appendChild(opt);
+        });
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('totalMembers').textContent = members.length;
+      document.getElementById('totalWives').textContent = members.filter(m => m.spousePid === 'PID001').length;
+      document.getElementById('totalChildren').textContent = members.filter(m => m.parentPids.length > 0).length;
+    }
+
+    function renderTimeline() {
+      const container = document.getElementById('timelineContent');
+      container.innerHTML = '';
+      [...members]
+        .sort((a, b) => new Date(a.birth) - new Date(b.birth))
+        .forEach(m => {
+          if (m.birth) {
+            const div = document.createElement('div');
+            div.className = 'bg-white p-3 rounded border';
+            div.textContent = `${m.name} — Born on ${m.birth}`;
+            container.appendChild(div);
+          }
+          if (m.death) {
+            const div = document.createElement('div');
+            div.className = 'bg-white p-3 rounded border';
+            div.textContent = `${m.name} — Died on ${m.death}`;
+            container.appendChild(div);
+          }
+        });
+    }
+
+    // Initialize
+    showTab('family-tree');
+  </script>
+</body>
+</html>
+

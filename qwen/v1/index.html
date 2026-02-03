@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Patekai Generations - PTarsila 1.8</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 py-6 text-center">
+      <h1 class="text-3xl font-bold text-indigo-700">Patekai Generations</h1>
+      <p class="text-gray-600">PTarsila 1.8 — Spouse Intelligence</p>
+    </div>
+  </header>
+
+  <nav class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex space-x-8">
+        <button onclick="showTab('family-tree')" class="py-3 px-2 border-b-2 border-indigo-500 text-indigo-700 font-medium">🌳 Family Tree</button>
+        <button onclick="showTab('register')" class="py-3 px-2 border-b-2 text-gray-500 font-medium">➕ Register</button>
+        <button onclick="showTab('statistics')" class="py-3 px-2 border-b-2 text-gray-500 font-medium">📊 Stats</button>
+        <button onclick="showTab('timeline')" class="py-3 px-2 border-b-2 text-gray-500 font-medium">🕰️ Timeline</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-4">
+    <!-- Family Tree Tab -->
+    <div id="family-tree" class="space-y-6">
+      <h2 class="text-xl font-semibold">Family Tree</h2>
+
+      <!-- Search -->
+      <div class="space-y-2">
+        <input
+          type="text"
+          id="searchQuery"
+          placeholder="🔍 Search by PID, Name, or TID"
+          class="w-full p-2 border border-gray-300 rounded-lg"
+          oninput="searchMembers()"
+        />
+        <div id="searchResults" class="bg-white p-3 border rounded shadow hidden"></div>
+      </div>
+
+      <!-- Success Toast -->
+      <div id="toast" class="toast hidden">✅ Member added successfully!</div>
+
+      <!-- Main Tree -->
+      <div id="familyTree" class="bg-white p-6 rounded-lg shadow font-mono text-sm"></div>
+
+      <!-- Selected Member Details -->
+      <div id="selectedMember" class="bg-white p-6 rounded-lg shadow hidden">
+        <h3 id="memberName" class="text-xl font-bold mb-4"></h3>
+        <img id="memberPhoto" class="w-16 h-16 rounded-full mb-4" style="display:none;" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div><span class="font-medium">PID:</span> <span id="memberPID"></span></div>
+          <div><span class="font-medium">TID:</span> <span id="memberTID"></span></div>
+          <div><span class="font-medium">Birth:</span> <span id="memberBirth"></span></div>
+          <div><span class="font-medium">Death:</span> <span id="memberDeath"></span></div>
+          <div><span class="font-medium">Father:</span> <span id="memberFather">Unknown</span></div>
+          <div><span class="font-medium">Mother:</span> <span id="memberMother">Unknown</span></div>
+          <div><span class="font-medium">Spouse:</span> <span id="memberSpouse">None</span></div>
+        </div>
+        <div class="mt-4 space-x-4">
+          <button onclick="startEdit()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Edit</button>
+          <button onclick="deleteMember()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">Delete</button>
+          <button onclick="startAddChild()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">➕ Add Child</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Register Tab (used for both Add and Edit) -->
+    <div id="register" class="hidden bg-white p-6 rounded-lg shadow max-w-3xl mx-auto">
+      <h2 id="registerTitle" class="text-2xl font-bold mb-6">✏️ Edit Member</h2>
+      <form id="regForm" onsubmit="submitRegForm(event)" class="space-y-5">
+        <div>
+          <label class="block font-medium">Patekai Member ID (Auto):</label>
+          <input id="regPID" readonly class="w-full p-2 border rounded bg-gray-100 font-mono text-sm" />
+        </div>
+        <div>
+          <label class="block font-medium">Tarsila Connection <span class="text-red-500">*</span>:</label>
+          <input id="tid" name="tid" required class="w-full p-2 border rounded text-sm" placeholder="W01-SD01-GSD01-GGSD01" />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-medium">First Name <span class="text-red-500">*</span>:</label>
+            <input id="firstName" name="firstName" required class="w-full p-2 border rounded text-sm" placeholder="First Name" />
+          </div>
+          <div>
+            <label class="block font-medium">Last Name (optional):</label>
+            <input id="lastName" name="lastName" class="w-full p-2 border rounded text-sm" placeholder="Last Name" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium">Sex <span class="text-red-500">*</span>:</label>
+          <select id="sex" name="sex" required class="w-full p-2 border rounded text-sm">
+            <option value="">Select Sex</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-medium">Birth Date <span class="text-red-500">*</span>:</label>
+            <input id="birth" name="birth" required placeholder="MM/DD/YYYY" class="w-full p-2 border rounded text-sm" />
+          </div>
+          <div>
+            <label class="block font-medium">Death Date:</label>
+            <input id="death" name="death" placeholder="MM/DD/YYYY" class="w-full p-2 border rounded text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium">Country:</label>
+          <select id="country" name="country" onchange="updateCountry(this)" class="w-full p-2 border rounded text-sm">
+            <option value="Philippines">Philippines</option>
+            <option value="USA">United States</option>
+            <option value="Canada">Canada</option>
+          </select>
+        </div>
+        <div id="regionGroup" class="hidden">
+          <label class="block font-medium">Region:</label>
+          <select id="region" name="region" onchange="updateCities()" class="w-full p-2 border rounded text-sm">
+            <option value="">Select Region</option>
+            <option value="BARMM">BARMM</option>
+            <option value="NCR">NCR</option>
+          </select>
+        </div>
+        <div id="cityGroup" class="hidden">
+          <label class="block font-medium">City:</label>
+          <select id="city" name="city" class="w-full p-2 border rounded text-sm">
+            <option value="">Select City</option>
+          </select>
+        </div>
+        <div id="cityInput" class="hidden">
+          <label class="block font-medium">City (max 25 chars):</label>
+          <input id="cityInputField" name="city" maxlength="25" class="w-full p-2 border rounded text-sm" />
+        </div>
+        <div>
+          <label class="block font-medium">Address (max 100 chars):</label>
+          <input id="address" name="address" maxlength="100" class="w-full p-2 border rounded text-sm" placeholder="Street, Barangay, etc." />
+        </div>
+        <div>
+          <label class="block font-medium">Phone Number:</label>
+          <div class="flex gap-2 items-center">
+            <div>
+              <label class="block text-xs font-medium text-gray-600">Area Code</label>
+              <select id="countryCode" name="countryCode" class="p-2 border rounded text-sm w-24">
+                <option value="+63">+63</option>
+                <option value="+1">+1</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label class="block text-xs font-medium text-gray-600">Phone Number</label>
+              <input id="phone" name="phone" placeholder="(000) 000-0000" class="w-full p-2 border rounded text-sm" />
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium">Email:</label>
+          <input id="email" name="email" type="email" placeholder="name@example.com" class="w-full p-2 border rounded text-sm" />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label>Father:</label>
+            <input id="fatherPid" name="fatherPid" placeholder="PID of Father" class="w-full p-2 border rounded text-sm" />
+          </div>
+          <div>
+            <label>Mother:</label>
+            <input id="motherPid" name="motherPid" placeholder="PID of Mother" class="w-full p-2 border rounded text-sm" />
+          </div>
+        </div>
+
+        <!-- SPOUSE LOGIC -->
+        <div>
+          <label class="block font-medium">Spouse Status:</label>
+          <select id="spouseStatus" onchange="updateSpouseFields()" class="w-full p-2 border rounded text-sm">
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+        </div>
+
+        <div id="spouseSearchGroup" class="hidden">
+          <label>Search Spouse by PID or Name:</label>
+          <input id="spouseSearch" oninput="searchSpouse()" placeholder="Enter PID or Name" class="w-full p-2 border rounded text-sm" />
+          <div id="spouseResults" class="bg-white border rounded mt-1 max-h-32 overflow-y-auto hidden"></div>
+        </div>
+
+        <div id="newSpouseGroup" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label>New Spouse First Name:</label>
+            <input id="newSpouseFirstName" class="w-full p-2 border rounded text-sm" placeholder="First Name" />
+          </div>
+          <div>
+            <label>New Spouse Last Name (optional):</label>
+            <input id="newSpouseLastName" class="w-full p-2 border rounded text-sm" placeholder="Last Name" />
+          </div>
+        </div>
+
+        <input id="spousePid" name="spousePid" class="hidden" />
+
+        <div>
+          <label class="block font-medium">Marriage Date:</label>
+          <input id="marriageDate" name="marriageDate" placeholder="MM/DD/YYYY" class="w-full p-2 border rounded text-sm" />
+        </div>
+        <div>
+          <label class="block font-medium">Divorce Date:</label>
+          <input id="divorceDate" name="divorceDate" placeholder="MM/DD/YYYY" class="w-full p-2 border rounded text-sm" />
+        </div>
+
+        <div>
+          <label class="block font-medium">Upload Photo:</label>
+          <input type="file" accept="image/*" onchange="handlePhotoUpload(event)" class="w-full p-2 border rounded text-sm" />
+          <img id="photoPreview" class="mt-2 w-16 h-16 rounded object-cover" style="display:none;" />
+        </div>
+        <div class="flex space-x-4">
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded text-sm">Save Member</button>
+          <button type="button" onclick="cancelAdd()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded text-sm">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Statistics Tab -->
+    <div id="statistics" class="hidden bg-white p-6 rounded-lg shadow max-w-3xl mx-auto">
+      <h3 class="text-xl font-semibold mb-4">📊 Statistics</h3>
+      <ul class="space-y-2">
+        <li><strong>Total Members:</strong> <span id="totalMembers">0</span></li>
+        <li><strong>Wives:</strong> <span id="totalWives">0</span></li>
+        <li><strong>Children:</strong> <span id="totalChildren">0</span></li>
+      </ul>
+    </div>
+
+    <!-- Timeline Tab -->
+    <div id="timeline" class="hidden space-y-2 max-w-3xl mx-auto">
+      <h3 class="text-xl font-semibold">🕰️ Timeline</h3>
+      <div id="timelineContent"></div>
+    </div>
+  </main>
+
+  <footer class="text-center py-6 text-gray-500 text-sm">&copy; 2025 PTarsila 1.8 — Spouse Intelligence</footer>
+
+  <!-- Load JavaScript files -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
